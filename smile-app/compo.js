@@ -21,23 +21,81 @@ export default class MyComponent extends Component {
         };
     }
 
-    //need a async function to load the models
+    async loadBlazefaceModel() {
+        const model = await blazeface.load();
+        return model;
+    }
 
     async componentDidMount() {
-            //here call the models to load them
+        const [blazefaceModel] =
+            await Promise.all([this.loadBlazefaceModel()])
+            console.log(blazefaceModel)
             this.setState({
                     isLoading: false,
-                    faceDetector: null,
+                    faceDetector: blazefaceModel,
                 })
 
 
     }
 
+    renderFaces() {
+        const { faces } = this.state;
+        console.log("je vais tout casser")
+        /*if (faces != null) {
+            console.log("je vais tout réparer")
+            const faceBoxes = faces.map((f, fIndex) => {
+                const topLeft = f.topLeft;
+                const bottomRight = f.bottomRight;
+
+                const landmarks = (f.landmarks).map((l, lIndex) => {
+                    return <Circle
+                        key={`landmark_${fIndex}_${lIndex}`}
+                        cx={l[0]}
+                        cy={l[1]}
+                        r='2'
+                        strokeWidth='0'
+                        fill='blue'
+                    />;
+                });
+
+                return <G key={`facebox_${fIndex}`}>
+                    <Rect
+                        x={topLeft[0]}
+                        y={topLeft[1]}
+                        fill={'red'}
+                        fillOpacity={0.2}
+                        width={(bottomRight[0] - topLeft[0])}
+                        height={(bottomRight[1] - topLeft[1])}
+                    />
+                    {landmarks}
+                </G>;
+            });
+
+            const flipHorizontal = Platform.OS === 'ios' ? 1 : -1;
+            return <Svg height='100%' width='100%'
+                viewBox={`0 0 ${inputTensorWidth} ${inputTensorHeight}`}
+                scaleX={flipHorizontal}>
+                {faceBoxes}
+            </Svg>;
+        } else {
+            return null;
+        }*/
+    }
 
     handleCameraStream(images, updatePreview, gl) {
         const loop = async () => {
-        const imageTensor = images.next().value;
 
+//blazefaceModel
+            if (this.state.faceDetector != null) {
+                console.log("mdfgsq")
+                const imageTensor = images.next().value;
+                const returnTensors = false;
+                const faces = await this.state.faceDetector.estimateFaces(
+                    imageTensor, returnTensors);
+
+                this.setState({ faces });
+                tf.dispose(imageTensor);
+            }
             //
             // do something with tensor here
             //
@@ -46,7 +104,7 @@ export default class MyComponent extends Component {
             //updatePreview();
             //gl.endFrameEXP();
 
-        requestAnimationFrame(loop);
+            requestAnimationFrame(loop);
         }
         loop();
     }
@@ -130,9 +188,8 @@ export default class MyComponent extends Component {
                     onReady={this.handleCameraStream}
                     autorender={true}
                 />
-                <View style={styles.modelResults} //put in the view the render function for smiles
-                >
-                    
+                <View style={styles.modelResults}>
+                    {this.renderFaces()}
                 </View>
             </View>)
         }

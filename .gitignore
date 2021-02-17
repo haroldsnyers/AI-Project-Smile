@@ -136,3 +136,5 @@ dmypy.json
 
 smile-app/.expo/
 smile-app/node_modules/
+smile-test-pictures/.expo/
+smile-test-pictures/node_modules/
