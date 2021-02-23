@@ -132,7 +132,7 @@ dmypy.json
 /.idea
 
 # remove dataset fer
-/src/dataset
+/neural_network/dataset
 
 smile-app/.expo/
 smile-app/node_modules/

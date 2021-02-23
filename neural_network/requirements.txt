@@ -1,0 +1,6 @@
+tensorflow==2.4.1
+plotly==4.14.3
+pandas==1.1.4
+numpy==1.19.3
+matplotlib==3.3.3
+attrs==20.3.0
