@@ -74,7 +74,8 @@ class CNNModel:
 
         # Full Connection
         # one dimensional vector
-        model.add(Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.001)))
+        # model.add(Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.001)))
+        model.add(Dense(units=1024, activation='relu'))
         model.add(Dropout(0.5))
 
         # Output Layer
