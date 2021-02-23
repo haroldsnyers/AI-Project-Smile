@@ -133,3 +133,8 @@ dmypy.json
 
 # remove dataset fer
 /src/dataset
+
+smile-app/.expo/
+smile-app/node_modules/
+smile-test-pictures/.expo/
+smile-test-pictures/node_modules/
