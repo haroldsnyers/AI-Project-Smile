@@ -17,10 +17,10 @@ test_set = data_processor.get_test_set
 
 opt = Adam(lr=0.0001, decay=10e-6)
 cnn_model = CNNModel(optimiser=opt)
-cnn_model.compute_model()
+cnn_model.compute_model(model_choice='xception')
 
 date = datetime.now()
-cnn_model.generate_model_plot(filename=date.strftime('%d-%m-%yT%Hh%Mm%Sd'))
+cnn_model.generate_model_plot(filename='model/' + date.strftime('%d-%m-%yT%Hh%Mm%Sd'))
 
 # possible to modify steps per epoch and validation steps
 cnn_model.train_model(training_set=training_set, test_set=test_set)

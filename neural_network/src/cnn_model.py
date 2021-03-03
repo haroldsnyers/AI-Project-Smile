@@ -9,11 +9,11 @@ from keras_preprocessing.image import img_to_array
 from plotly.offline import iplot
 from plotly.subplots import make_subplots
 
-from tensorflow.python.keras import regularizers
-from tensorflow.python.keras.layers import MaxPooling2D, Conv2D, Dropout, Flatten, Dense, BatchNormalization
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.preprocessing.image import load_img
 from tensorflow.python.keras.utils.vis_utils import plot_model
+
+from neural_network.src.models import MODELS
 
 
 @attr.s
@@ -28,7 +28,7 @@ class CNNModel:
     _test_loss = attr.ib(default=None)
     _test_acc = attr.ib(default=None)
 
-    SAVE_DIRECTORY = 'model/'
+    SAVE_DIRECTORY = '../model/'
 
     @property
     def get_model_summary(self):
@@ -41,47 +41,15 @@ class CNNModel:
     def __attrs_post_init__(self):
         pass
 
-    def compute_model(self):
-        self._model = self._build_model()
+    def compute_model(self, model_choice):
+        self._model = self._build_model(model_choice=model_choice)
         self._compile_model(opt=self.optimiser)
 
-    def _build_model(self):
+    def _build_model(self, model_choice='model1'):
         # init CNN
         model = Sequential()
 
-        # first convolution layer
-        model.add(
-            Conv2D(filters=64, kernel_size=(3, 3), activation='relu', padding='same', input_shape=self.input_size))
-        model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
-        model.add(BatchNormalization())
-
-        # Pooling
-        model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
-        model.add(Dropout(0.25))
-
-        # Second Convolution layer
-        model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
-        model.add(Conv2D(128, (3, 3), activation='relu'))
-        model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-        model.add(Conv2D(256, (3, 3), activation='relu'))
-
-        # Pooling
-        model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
-        model.add(Dropout(0.25))
-
-        # Flattening
-        model.add(Flatten())
-
-        # Full Connection
-        # one dimensional vector
-        # model.add(Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.001)))
-        model.add(Dense(units=1024, activation='relu'))
-        model.add(Dropout(0.5))
-
-        # Output Layer
-        # the activation function softmax makes sure to rescale the final values between zero and one and
-        # that the sum of the values of all out layer neurons is equal to just 1
-        model.add(Dense(units=self.n_classes, activation='softmax'))
+        model = MODELS[model_choice](model, self.input_size, self.n_classes)
 
         return model
 
@@ -110,7 +78,7 @@ class CNNModel:
                                                                             self._test_loss * 100))
 
     def generate_model_plot(self, filename):
-        plot_model(self._model, to_file=self.SAVE_DIRECTORY + filename + '.png', show_shapes=True, show_layer_names=True)
+        plot_model(self._model, to_file=filename + '.png', show_shapes=True, show_layer_names=True)
 
     def predict(self, image, emotions, emotion_indices):
         test_image_angry = load_img(image, target_size=(self.input_size[0], self.input_size[1]))
