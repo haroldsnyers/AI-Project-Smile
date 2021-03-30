@@ -138,3 +138,6 @@ smile-app/.expo/
 smile-app/node_modules/
 smile-test-pictures/.expo/
 smile-test-pictures/node_modules/
+*.jpg
+neural_network/modelEmo.h5
+neural_network/models/modelEmo.h5
