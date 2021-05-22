@@ -1,6 +1,8 @@
 tensorflow==2.4.1
 plotly==4.14.3
 pandas==1.1.4
-numpy==1.19.3
+numpy~=1.20.1
 matplotlib==3.3.3
 attrs==20.3.0
+keras==2.4.3
+tensorflow-gpu~=2.4.1

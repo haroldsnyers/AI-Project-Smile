@@ -10,6 +10,7 @@ from tensorflow.python.keras.preprocessing.image import load_img
 class DataPreProcessor:
     images_train_dir = attr.ib(default=None)
     images_test_dir = attr.ib(default=None)
+    batch_size = attr.ib(default=64)
     image_shape = attr.ib(default=[48, 48])
     _train_datagen = attr.ib(default=None)
     _test_datagen = attr.ib(default=None)
@@ -56,7 +57,10 @@ class DataPreProcessor:
     def generate_train_data_gen(self):
         self._train_datagen = ImageDataGenerator(
             rescale=1. / 255,  # feature scaling (like normalization -> put every pixel between 0 and 1
-            zoom_range=0.3,
+            zoom_range=0.2,
+            rotation_range=30,
+            width_shift_range=0.1,
+            height_shift_range=0.1,
             horizontal_flip=True)
 
     def generate_test_data_gen(self):
@@ -64,7 +68,7 @@ class DataPreProcessor:
 
     def generate_data_set(self, dir):
         return self._train_datagen.flow_from_directory(dir,
-                                                       batch_size=64,
+                                                       batch_size=self.batch_size,
                                                        target_size=(self.image_shape[0], self.image_shape[1]),
                                                        shuffle=True,
                                                        color_mode='grayscale',

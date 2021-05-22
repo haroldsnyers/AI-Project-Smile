@@ -1,30 +1,50 @@
 from datetime import datetime
+import os
+import sys
+
+module_path = os.path.abspath(os.path.join(''))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+print(module_path)
 
 from keras.optimizers import Adam
 from neural_network.src.data_preprocessing import DataPreProcessor
 from neural_network.src.cnn_model import CNNModel
+from neural_network.src.models import ActivationFunction, Models
 
-train_dir = 'dataset/fer2013/train/'
-test_dir = 'dataset/fer2013/test/'
+train_dir = 'neural_network/dataset/fer2013/train/'
+test_dir = 'neural_network/dataset/fer2013/test/'
 
 row, col = 48, 48
 classes = 7
 
-data_processor = DataPreProcessor(images_train_dir=train_dir, images_test_dir=test_dir)
+# train_dir = 'neural_network/dataset/affectnet8/train/'
+# test_dir = 'neural_network/dataset/affectnet8/val/'
+
+# row, col = 224, 224
+# classes = 8
+
+batch = 128
+epoch = 80
+model = Models.res_net
+
+activation_fct = ActivationFunction.relu
+
+data_processor = DataPreProcessor(
+    images_train_dir=train_dir, images_test_dir=test_dir, batch_size=batch, image_shape=[row, col])
 
 training_set = data_processor.get_train_set
 test_set = data_processor.get_test_set
 
 opt = Adam(lr=0.0001, decay=10e-6)
-cnn_model = CNNModel(optimiser=opt)
-cnn_model.compute_model(model_choice='xception')
+cnn_model = CNNModel(optimiser=opt, epochs=epoch, n_classes=classes, input_size=(row, col, 1))
+cnn_model.compute_model(model_choice=model, activation_func=activation_fct)
 
 date = datetime.now()
-cnn_model.generate_model_plot(filename='model/' + date.strftime('%d-%m-%yT%Hh%Mm%Sd'))
+cnn_model.generate_model_plot(filename='neural_network/models/' + model + '/' + date.strftime('%d-%m-%yT%Hh%Mm%Ss'))
 
 # possible to modify steps per epoch and validation steps
 cnn_model.train_model(training_set=training_set, test_set=test_set)
 
 date = datetime.now()
-cnn_model.save_model(date.strftime('%d-%m-%yT%H:%M:%S'))
-
+cnn_model.save_model(filename='neural_network/models/' + model + '/'+ date.strftime('%d-%m-%yT%Hh%Mm%Ss'))

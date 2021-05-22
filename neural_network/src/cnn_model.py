@@ -1,3 +1,4 @@
+import datetime
 from os.path import isfile, join
 
 import attr
@@ -9,9 +10,12 @@ from keras_preprocessing.image import img_to_array
 from plotly.offline import iplot
 from plotly.subplots import make_subplots
 
-from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.preprocessing.image import load_img
+import tensorflow as tf
+import keras as k
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.python.keras.utils.vis_utils import plot_model
+from tensorflow.keras.callbacks import TensorBoard
 
 from neural_network.src.models import MODELS
 
@@ -21,12 +25,14 @@ class CNNModel:
     input_size = attr.ib(default=(48, 48, 1))
     n_classes = attr.ib(default=7)
     optimiser = attr.ib(default='adam')
+    epochs = attr.ib(default=60)
     hist = attr.ib(default=None)
     _model = attr.ib(default=None, type=Sequential)
     _train_loss = attr.ib(default=None)
     _train_acc = attr.ib(default=None)
     _test_loss = attr.ib(default=None)
     _test_acc = attr.ib(default=None)
+    _model_type = attr.ib(default='model1')
 
     SAVE_DIRECTORY = '../model/'
 
@@ -41,15 +47,32 @@ class CNNModel:
     def __attrs_post_init__(self):
         pass
 
-    def compute_model(self, model_choice):
-        self._model = self._build_model(model_choice=model_choice)
+    def compute_model(self, model_choice, activation_func):
+        self._model = self._build_model(model_choice=model_choice, activation_fct=activation_func)
         self._compile_model(opt=self.optimiser)
 
-    def _build_model(self, model_choice='model1'):
+    def _build_model(self, model_choice='model1', activation_fct='relu'):
         # init CNN
-        model = Sequential()
+        # tf.debugging.set_log_device_placement(True)
+        #
+        # # Create some tensors
+        # a = tf.constant([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        # b = tf.constant([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        # c = tf.matmul(a, b)
+        #
+        # print(c)
 
-        model = MODELS[model_choice](model, self.input_size, self.n_classes)
+        # # make sure soft-placement is off
+        # tf_config = tf.ConfigProto(allow_soft_placement=False)
+        # tf_config.gpu_options.allow_growth = True
+        # s = tf.Session(config=tf_config)
+        # k.set_session(s)
+        self._model_type = model_choice
+
+        with tf.device('/gpu:0'):
+            model = Sequential()
+
+            model = MODELS[model_choice](model, self.input_size, self.n_classes, activation_fct)
 
         return model
 
@@ -62,11 +85,18 @@ class CNNModel:
         if validation_steps is None:
             validation_steps = test_set.n // test_set.batch_size
 
+        log_dir = "neural_network/logs/fit/" + self._model_type + '/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+
         self.hist = self._model.fit(x=training_set,
                                     validation_data=test_set,
-                                    epochs=60,
+                                    epochs=self.epochs,
                                     steps_per_epoch=steps_per_epoch,
-                                    validation_steps=validation_steps)
+                                    validation_steps=validation_steps,
+                                    callbacks=tensorboard_callback, 
+                                    # use_multiprocessing=True,
+                                    # workers=8
+                                    )
 
     def evaluate_model(self, training_set, test_set):
         self._train_loss, self._train_acc = self.compute_accuracy_and_loss(training_set)
@@ -96,7 +126,7 @@ class CNNModel:
         print("the person emotion is :" + result_emotion)
 
     def save_model(self, filename):
-        self._model.save(join(self.SAVE_DIRECTORY, filename))
+        self._model.save(filename)
         print('[+] Model trained and saved at ' + filename)
 
     def load_model(self, filename):
