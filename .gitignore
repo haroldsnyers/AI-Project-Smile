@@ -131,7 +131,7 @@ dmypy.json
 # pycharm
 /.idea
 
-# remove dataset fer
+# remove datasets
 /neural_network/dataset
 /neural_network/logs/*
 
@@ -143,5 +143,5 @@ smile-test-pictures/node_modules/
 neural_network/modelEmo.h5
 neural_network/models/modelEmo.h5
 
-neural_network/models/../*
-neural_network/logs
+# remove saved models
+neural_network/models/*
