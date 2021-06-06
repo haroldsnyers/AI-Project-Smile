@@ -42,18 +42,14 @@ export default class CameraSmile extends Component {
         frameworkReady: false
     }
   }
-
+  //initilization
   componentDidMount(){
     if (!this.state.frameworkReady) {
       (async () => {
 
-
-
         //check permissions
         const { status } = await Camera.requestPermissionsAsync();
         console.log(`permissions status: ${status}`);
-       
-
 
         //we must always wait for the Tensorflow API to be ready before any TF operation...
         await tf.ready();       
@@ -113,23 +109,18 @@ export default class CameraSmile extends Component {
       try {
         let width = parseInt((faces[i].bottomRight[1] - faces[i].topLeft[1]))
         let height = parseInt((faces[i].bottomRight[0] - faces[i].topLeft[0]))
-        let faceTensor=imageTensor.slice([parseInt(faces[i].topLeft[1]),parseInt(faces[i].topLeft[0]),0],[width,height,1])
         //console.log("[+] facetensor init")
-        faceTensor = faceTensor.resizeBilinear([48,48]).reshape([1,48,48,1])
+        let faceTensor=imageTensor.slice([parseInt(faces[i].topLeft[1]),parseInt(faces[i].topLeft[0]),0],[width,height,1])
         //console.log("[+] facetensor resize")
-       //console.log(faceTensor)
-        let result = await this.state.maskDetector.predict(faceTensor).data()
+        faceTensor = faceTensor.resizeBilinear([48,48]).reshape([1,48,48,1])
         //console.log("[+] facetensor result")
-        //console.log(result)
+        let result = await this.state.maskDetector.predict(faceTensor).data()
         let emotion = this.bestEmotion(result)
-  
         tempArray.push({
           id:i,
           location:faces[i],
           emotion: emotion
         })
-        //console.log(tempArray) 
-        
       } catch (error) {
         this.props.set([])
       }
@@ -144,7 +135,6 @@ export default class CameraSmile extends Component {
     const loop = async () => {
       const nextImageTensor = await imageAsTensors.next().value;
       //await getPredictionMobile(nextImageTensor);
-      
       if(i == 1){
         await this.getPredictionBlaze(nextImageTensor);
         i=0

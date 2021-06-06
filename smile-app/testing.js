@@ -47,6 +47,7 @@ export default function Testing(props) {
       ],
     ]
  */
+//Layer for the emoticons
   return (
     <View>
         <Svg style={styles.camera}>
