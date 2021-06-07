@@ -4,6 +4,7 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import MaxPooling2D, Conv2D, Dropout, Flatten, Dense, BatchNormalization, \
     Activation, SeparableConv2D, Add, GlobalAveragePooling2D, ReLU, PReLU
 from tensorflow.python.keras.layers import AveragePooling2D
+from icecream import ic
 
 class ActivationFunction:
     relu = 'relu'
@@ -93,26 +94,29 @@ def model_vgg_net(model, input_size, n_classes, activation_fct="relu"):
     model.add(Conv2D(filters=64, kernel_size=(3, 3), activation=activation_fct))
     # model.add(Activation(PReLU()))
     model.add(BatchNormalization())
+
     model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
     model.add(Dropout(0.25))
 
     # (CONV => RELU) * 2 => POOL
     model.add(Conv2D(128, (3, 3), activation=activation_fct, padding='same'))
-    # model.add(Activation(PReLU()))
     model.add(BatchNormalization())
     model.add(Conv2D(128, (3, 3), padding='same', activation=activation_fct))
-    # model.add(Activation(PReLU()))
     model.add(BatchNormalization())
+
     model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
     model.add(Dropout(0.25))
 
-    # (CONV => RELU) * 2 => POOL
+    # (CONV => RELU) * 3 => POOL
     model.add(Conv2D(256, (3, 3), activation=activation_fct, padding='same'))
     model.add(BatchNormalization())
     model.add(Conv2D(256, (3, 3), activation=activation_fct, padding='same'))
     model.add(BatchNormalization())
     model.add(Conv2D(256, (3, 3), activation=activation_fct, padding='same'))
     model.add(BatchNormalization())
+    model.add(Conv2D(256, (3, 3), activation=activation_fct, padding='same'))
+    model.add(BatchNormalization())
+
     model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
     model.add(Dropout(0.25))
 
@@ -123,6 +127,9 @@ def model_vgg_net(model, input_size, n_classes, activation_fct="relu"):
     model.add(BatchNormalization())
     model.add(Conv2D(512, (3, 3), activation=activation_fct, padding='same'))
     model.add(BatchNormalization())
+    model.add(Conv2D(512, (3, 3), activation=activation_fct, padding='same'))
+    model.add(BatchNormalization())
+
     model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
     model.add(Dropout(0.25))
 
@@ -133,6 +140,9 @@ def model_vgg_net(model, input_size, n_classes, activation_fct="relu"):
     model.add(BatchNormalization())
     model.add(Conv2D(512, (3, 3), activation=activation_fct, padding='same'))
     model.add(BatchNormalization())
+    model.add(Conv2D(512, (3, 3), activation=activation_fct, padding='same'))
+    model.add(BatchNormalization())
+
     model.add(MaxPooling2D(pool_size=(2, 2), strides=2))
     model.add(Dropout(0.25))
 
@@ -176,7 +186,7 @@ def x_ception(model, input_size, n_classes, activation_fct="relu", number_blocks
 
 
 def entry_flow(inputs, activation_fct) :
-    x = Conv2D(32, 3, strides=2, padding='same')(inputs)
+    x = Conv2D(64, 3, strides=2, padding='same')(inputs)
     x = BatchNormalization()(x)
     x = Activation(activation_fct)(x)
 
@@ -186,7 +196,7 @@ def entry_flow(inputs, activation_fct) :
 
     previous_block_activation = x
 
-    for size in [128, 256, 728]:
+    for size in [256, 256, 728]:
         x = Activation(activation_fct)(x)
         x = SeparableConv2D(size, 3, padding='same')(x)
         x = BatchNormalization()(x)
@@ -256,27 +266,44 @@ def exit_flow(x, activation_fct):
     x = Flatten()(x)
     return x
 
-
-def create_res_net(model, input_size, n_classes, activation_fct='relu'):
+def create_res_net(model, input_size, n_classes, activation_fct='relu', res_net_version='resnet_v'):
     inputs = Input(shape=input_size)
-    num_filters = 64
+    num_filters = 32
 
     t = BatchNormalization()(inputs)
-    t = Conv2D(kernel_size=3,
-               strides=1,
-               filters=num_filters,
-               padding="same")(t)
-    t = relu_bn(t)
+    t = Conv2D(
+            # kernel_size=7,
+            kernel_size=3,
+            strides=1,
+            filters=8,
+            padding="same",
+            name="conv1")(t)
+    t = relu_bn(t, activation_fct)
+    ic(t)
+    # t = MaxPooling2D(3, strides=2, padding='same')(t)
 
-    num_blocks_list = [2, 5, 5, 2]
+    num_blocks_list = RESNET_VERSION[res_net_version]
     for i in range(len(num_blocks_list)):
         num_blocks = num_blocks_list[i]
+        # n_filters = num_filters * (i + 1)
         for j in range(num_blocks):
-            t = residual_block(t, downsample=(j == 0 and i != 0), filters=num_filters)
+            strides = 1 if i == 0 else 2
+            t = residual_block(t, downsample=(j == 0), filters=num_filters, name="conv" + str(i+2) + '_' + str(j+1), 
+                               activation_fct=activation_fct, s=strides)
+        ic(t)
         num_filters *= 2
 
-    t = AveragePooling2D(4)(t)
+    t = AveragePooling2D(2)(t)
     t = Flatten()(t)
+
+    # first (and only) Full Connection
+    # model.add(Dense(units=1000, activation=activation_fct))
+    # model.add(BatchNormalization())
+    # model.add(Dropout(0.5))
+    t = Dense(units=512, activation=activation_fct)(t)
+    # t = BatchNormalization()(t)
+    # t = Dropout(0.5)(t)
+
     outputs = Dense(units=n_classes, activation='softmax')(t)
 
     model = Model(inputs, outputs)
@@ -284,30 +311,46 @@ def create_res_net(model, input_size, n_classes, activation_fct='relu'):
     return model
 
 
-def relu_bn(inputs: Tensor) -> Tensor:
-    relu = ReLU()(inputs)
+def relu_bn(inputs: Tensor, activation_fct) -> Tensor:
+    if activation_fct == 'relu':
+        relu = ReLU()(inputs)
+    else:
+        relu = PReLU()(inputs)
     bn = BatchNormalization()(relu)
     return bn
 
 
-def residual_block(x: Tensor, downsample: bool, filters: int, kernel_size: int = 3) -> Tensor:
-    y = Conv2D(kernel_size=kernel_size,
-               strides= (1 if not downsample else 2),
+def residual_block(input_tensor: Tensor, downsample: bool, filters: int, name="conv", activation_fct='relu', s=2) -> Tensor:
+    x = Conv2D(kernel_size=1,
+               strides= (1 if not downsample else s),
                filters=filters,
-               padding="same")(x)
-    y = relu_bn(y)
-    y = Conv2D(kernel_size=kernel_size,
+               padding="same",
+               name=name + 'a')(input_tensor)
+    x = relu_bn(x, activation_fct)
+
+    x = Conv2D(kernel_size=3,
                strides=1,
                filters=filters,
-               padding="same")(y)
+               padding="same",
+               name=name + 'b')(x)
+    x = relu_bn(x, activation_fct)
+
+    x = Conv2D(kernel_size=1,
+            strides=1,
+            filters=filters*4,
+            padding="same",
+            name=name + 'c')(x)
+    x = BatchNormalization()(x)
 
     if downsample:
-        x = Conv2D(kernel_size=1,
-                   strides=2,
-                   filters=filters,
-                   padding="same")(x)
-    out = Add()([x, y])
-    out = relu_bn(out)
+        input_tensor = Conv2D(kernel_size=1,
+                   strides=s,24x24
+                   filters=filters*4,
+                   padding="same",
+                   name=name)(input_tensor)
+
+    out = Add()([input_tensor, x])
+    out = relu_bn(out, activation_fct)
     return out
 
 
@@ -315,11 +358,25 @@ MODELS = {
     "model1": model1,
     "vgg_net": model_vgg_net,
     "xception": x_ception,
-    "res_net": create_res_net
+    "resnet_v": create_res_net,
+    "resnet_v2_50": create_res_net,
+    "resnet_v2_101": create_res_net,
+    "resnet_v2_152": create_res_net,
 }
 
 class Models:
     model1 = "model1"
     vgg_net = "vgg_net"
     xception = "xception"
-    res_net = "res_net"
+    res_net = "resnet_v"
+    res_net_v50 = "resnet_v2_50"
+    res_net_v101 = "resnet_v2_101"
+    res_net_v152 = "resnet_v2_152"
+
+
+RESNET_VERSION = {
+    'resnet_v': [2, 5, 5, 2],
+    'resnet_v2_50': [3, 4, 6, 3], 
+    'resnet_v2_101': [3, 4, 23, 3],
+    'resnet_v2_152': [3, 8, 36, 3]
+}

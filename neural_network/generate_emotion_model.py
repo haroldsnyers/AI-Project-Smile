@@ -24,9 +24,9 @@ classes = 7
 # row, col = 224, 224
 # classes = 8
 
-batch = 128
-epoch = 80
-model = Models.res_net
+batch = 32
+epoch = 160
+model = Models.res_net_v50
 
 activation_fct = ActivationFunction.relu
 
@@ -36,15 +36,23 @@ data_processor = DataPreProcessor(
 training_set = data_processor.get_train_set
 test_set = data_processor.get_test_set
 
-opt = Adam(lr=0.0001, decay=10e-6)
+opt = Adam(lr=0.0005, beta_1=0.9, beta_2=0.999, epsilon=1e-7)
 cnn_model = CNNModel(optimiser=opt, epochs=epoch, n_classes=classes, input_size=(row, col, 1))
 cnn_model.compute_model(model_choice=model, activation_func=activation_fct)
+
+print(cnn_model.get_model_summary)
+
+print(model[:6])
+if model[:6] == 'resnet':
+    model = 'res_net'
 
 date = datetime.now()
 cnn_model.generate_model_plot(filename='neural_network/models/' + model + '/' + date.strftime('%d-%m-%yT%Hh%Mm%Ss'))
 
 # possible to modify steps per epoch and validation steps
-cnn_model.train_model(training_set=training_set, test_set=test_set)
+cnn_model.train_model(training_set=training_set, test_set=test_set, model_choice=model)
 
 date = datetime.now()
 cnn_model.save_model(filename='neural_network/models/' + model + '/'+ date.strftime('%d-%m-%yT%Hh%Mm%Ss'))
+
+cnn_model.plot_accuracy_and_loss_plotly()

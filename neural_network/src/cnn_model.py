@@ -16,6 +16,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.image import load_img
 from tensorflow.python.keras.utils.vis_utils import plot_model
 from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 from neural_network.src.models import MODELS
 
@@ -72,28 +74,38 @@ class CNNModel:
         with tf.device('/gpu:0'):
             model = Sequential()
 
-            model = MODELS[model_choice](model, self.input_size, self.n_classes, activation_fct)
+            if model_choice[:3] == 'res':
+                model = MODELS[model_choice](model, self.input_size, self.n_classes, activation_fct, model_choice)    
+            else:
+                model = MODELS[model_choice](model, self.input_size, self.n_classes, activation_fct)
 
         return model
 
     def _compile_model(self, opt):
         self._model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
-    def train_model(self, training_set, test_set, steps_per_epoch=None, validation_steps=None):
+    def train_model(self, training_set, test_set, steps_per_epoch=None, validation_steps=None, model_choice=None):
         if steps_per_epoch is None:
             steps_per_epoch = training_set.n // training_set.batch_size
         if validation_steps is None:
             validation_steps = test_set.n // test_set.batch_size
 
         log_dir = "neural_network/logs/fit/" + self._model_type + '/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+        csv_logger = CSVLogger(log_dir, append=False)
+        early_stop = EarlyStopping('val_loss', patience=25)
+        trained_models_path = "neural_network/model/" + model_choice
+        reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1, patience=int(25/2), verbose=1)
+        model_names = trained_models_path + '.{epoch:02d}-{val_accuracy:.2f}.hdf5'
+        model_checkpoint = ModelCheckpoint(model_names, 'val_loss', verbose=1,save_best_only=True)
+        callbacks = [model_checkpoint, csv_logger, early_stop, reduce_lr]
+        # tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1,)
 
         self.hist = self._model.fit(x=training_set,
                                     validation_data=test_set,
                                     epochs=self.epochs,
                                     steps_per_epoch=steps_per_epoch,
                                     validation_steps=validation_steps,
-                                    callbacks=tensorboard_callback, 
+                                    callbacks=callbacks, 
                                     # use_multiprocessing=True,
                                     # workers=8
                                     )
